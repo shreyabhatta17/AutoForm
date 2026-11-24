@@ -463,6 +463,54 @@ def test_hosted_openai_compatible_provider():
     assert answer.startswith('I built') and 'think' not in answer
 
 
+def test_hosted_provider_sends_reasoning_effort_and_extra_tokens():
+    captured = {}
+
+    class Response:
+        def raise_for_status(self): pass
+        def json(self): return {'choices': [{'message': {'content': 'I built forecasting tools in Python at Acme Corp.'}}]}
+
+    class Client:
+        def __init__(self, timeout=None): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def post(self, url, json, headers=None):
+            captured.update(url=url, body=json)
+            return Response()
+
+    with patch.object(settings, 'llm_provider', 'openai'), patch.object(settings, 'llm_api_key', 'sk-test'), \
+         patch.object(settings, 'llm_reasoning_effort', 'low'), patch.object(settings, 'llm_max_tokens_extra', 80), \
+         patch('app.services.httpx.AsyncClient', Client):
+        asyncio.run(generate_local('What did you build at Acme Corp?', 'Experience: Acme Corp, Python forecasting tools', 'concise'))
+
+    assert captured['body']['reasoning_effort'] == 'low'
+    assert captured['body']['max_tokens'] == 220
+
+
+def test_hosted_provider_omits_reasoning_effort_and_keeps_default_tokens():
+    captured = {}
+
+    class Response:
+        def raise_for_status(self): pass
+        def json(self): return {'choices': [{'message': {'content': 'I built forecasting tools in Python at Acme Corp.'}}]}
+
+    class Client:
+        def __init__(self, timeout=None): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def post(self, url, json, headers=None):
+            captured.update(url=url, body=json)
+            return Response()
+
+    with patch.object(settings, 'llm_provider', 'openai'), patch.object(settings, 'llm_api_key', 'sk-test'), \
+         patch.object(settings, 'llm_reasoning_effort', ''), patch.object(settings, 'llm_max_tokens_extra', 0), \
+         patch('app.services.httpx.AsyncClient', Client):
+        asyncio.run(generate_local('What did you build at Acme Corp?', 'Experience: Acme Corp, Python forecasting tools', 'concise'))
+
+    assert 'reasoning_effort' not in captured['body']
+    assert captured['body']['max_tokens'] == 140
+
+
 def test_postgres_urls_are_normalised():
     from app.config import Settings
     assert Settings(database_url='postgres://u:p@h/db').database_url == 'postgresql+psycopg://u:p@h/db'

@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ''
     llm_model: str = 'llama-3.1-8b-instant'
     llm_timeout_seconds: float = 60
+    llm_reasoning_effort: str = ''
+    llm_max_tokens_extra: int = Field(default=0, ge=0, le=2000)
 
     ollama_base_url: str = 'http://127.0.0.1:11434'
     ollama_model: str = 'qwen3:4b'

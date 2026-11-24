@@ -1269,17 +1269,20 @@ async def _call_ollama(client, model, prompt, token_budget, temperature):
 
 async def _call_openai(client, model, prompt, token_budget, temperature):
     """Any OpenAI-compatible chat API: Groq, OpenRouter, Together, Gemini, OpenAI, vLLM..."""
+    payload = {
+        'model': model,
+        'messages': [{'role': 'user', 'content': prompt}],
+        'temperature': temperature,
+        'top_p': 0.9,
+        'max_tokens': token_budget + settings.llm_max_tokens_extra,
+        'stream': False,
+    }
+    if settings.llm_reasoning_effort:
+        payload['reasoning_effort'] = settings.llm_reasoning_effort
     response = await client.post(
         f"{settings.llm_base_url.rstrip('/')}/chat/completions",
         headers={'Authorization': f'Bearer {settings.llm_api_key}'},
-        json={
-            'model': model,
-            'messages': [{'role': 'user', 'content': prompt}],
-            'temperature': temperature,
-            'top_p': 0.9,
-            'max_tokens': token_budget,
-            'stream': False,
-        })
+        json=payload)
     response.raise_for_status()
     choices = response.json().get('choices') or [{}]
     return (choices[0].get('message') or {}).get('content') or ''
