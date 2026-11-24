@@ -1146,15 +1146,20 @@ async def resolve_model(client):
 
 def probe_model():
     """Synchronous model lookup for the health endpoint."""
-    if _MODEL_CACHE['value']:
+    key = f'{settings.ollama_base_url}|{settings.ollama_model}'
+    if _MODEL_CACHE['key'] == key and time.monotonic() - _MODEL_CACHE['at'] < 300:
         return _MODEL_CACHE['value']
     try:
         response = httpx.get(f'{settings.ollama_base_url}/api/tags', timeout=3)
         if response.status_code == 200:
-            return choose_model(response.json().get('models', []))
+            model = choose_model(response.json().get('models', []))
+            _MODEL_CACHE.update({'key': key, 'value': model, 'at': time.monotonic()})
+            return model
     except Exception:
-        pass
-    return settings.ollama_model
+        _MODEL_CACHE.update({'key': key, 'value': None, 'at': time.monotonic()})
+        return None
+    _MODEL_CACHE.update({'key': key, 'value': None, 'at': time.monotonic()})
+    return None
 
 
 def trim_to_word_limit(answer, max_words):

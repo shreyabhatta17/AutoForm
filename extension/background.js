@@ -1,5 +1,6 @@
-const API='http://127.0.0.1:8000';
-const request=(path,options={})=>fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...options})
+const DEFAULT_API='http://127.0.0.1:8000';
+const getApi=async()=>{const {apiUrl}=await chrome.storage.local.get('apiUrl');return (apiUrl||DEFAULT_API).replace(/\/$/,'')};
+const request=async(path,options={})=>fetch(`${await getApi()}${path}`,{headers:{'Content-Type':'application/json'},...options})
   .then(async r=>{if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||'Backend error');return r.json()});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   if(message.type==='classify') request('/fields/classify',{method:'POST',body:JSON.stringify({fields:message.fields})}).then(reply).catch(e=>reply({error:e.message}));

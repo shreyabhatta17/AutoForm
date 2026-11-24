@@ -7,6 +7,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / '.env', extra='ignore')
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'app.db'}"
+    deployment_mode: str = 'local'
     upload_dir: Path = BASE_DIR / 'data' / 'uploads' / 'cv'
     model_dir: Path = BASE_DIR / 'models'
     ollama_base_url: str = 'http://127.0.0.1:11434'
@@ -16,6 +17,10 @@ class Settings(BaseSettings):
     auto_fill_threshold: float = Field(default=0.90, ge=0, le=1)
     suggest_threshold: float = Field(default=0.60, ge=0, le=1)
     max_cv_bytes: int = 10 * 1024 * 1024
+
+    @property
+    def public_demo(self) -> bool:
+        return self.deployment_mode.strip().lower() in {'public', 'public-demo', 'demo'}
 
 settings = Settings()
 settings.upload_dir.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from pathlib import Path
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +16,15 @@ from .services import classifier, get_value, resolve_value, field_text, detect_o
 app=FastAPI(title='Automatic Form Filler',version='1.0.0')
 app.mount('/ui', StaticFiles(directory=Path(__file__).parent/'static'), name='ui')
 app.add_middleware(CORSMiddleware,allow_origin_regex=r'chrome-extension://.*',allow_methods=['GET','POST','PUT','DELETE'],allow_headers=['*'])
+PRIVATE_ROUTE_PREFIXES = ('/profile', '/education', '/experience', '/projects', '/skills', '/answers', '/cv', '/context', '/fields/classify', '/settings')
+
+@app.middleware('http')
+async def public_demo_privacy_guard(request: Request, call_next):
+    path = request.url.path.rstrip('/') or '/'
+    if settings.public_demo and (path == '/' or any(path == prefix or path.startswith(prefix + '/') for prefix in PRIVATE_ROUTE_PREFIXES)):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403, content={'detail': 'This personal-data feature is disabled in public demo mode.'})
+    return await call_next(request)
 @app.on_event('startup')
 def init():
     Base.metadata.create_all(engine)
@@ -23,7 +32,14 @@ def init():
 @app.get('/', include_in_schema=False)
 def dashboard(): return FileResponse(Path(__file__).parent/'static'/'index.html')
 @app.get('/health')
-def health(): return {'status':'ok','model_loaded':classifier.model is not None,'ollama_url':settings.ollama_base_url,'answer_model':probe_model(),'configured_model':settings.ollama_model}
+def health():
+    if settings.public_demo:
+        return {'status':'ok','deployment_mode':'public-demo','model_loaded':classifier.model is not None,'answer_generation_available':False}
+    try:
+        model = probe_model()
+    except Exception:
+        model = None
+    return {'status':'ok','deployment_mode':settings.deployment_mode,'model_loaded':classifier.model is not None,'ollama_url':settings.ollama_base_url,'answer_model':model,'configured_model':settings.ollama_model}
 def one(model, db):
     row=db.get(model,1)
     if not row: row=model(id=1); db.add(row); db.commit(); db.refresh(row)
@@ -108,6 +124,8 @@ def context(payload:GenerateRequest,db:Session=Depends(get_db)):
     value,sources,kind,missing=context_for(db,payload.question);return {'context':value,'sources':sources,'question_kind':kind,'missing':missing}
 @app.post('/answers/generate')
 async def generate(payload:GenerateRequest,db:Session=Depends(get_db)):
+    if settings.public_demo:
+        raise HTTPException(503, 'Answer generation is unavailable in public demo mode.')
     context,sources,kind,missing=context_for(db,payload.question)
     if not context.strip(): raise HTTPException(422,'Add profile information before generating an answer.')
     _,guidance,_=question_guidance(payload.question)
