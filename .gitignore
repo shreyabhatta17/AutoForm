@@ -9,3 +9,5 @@ backend/test.db
 backend/.env
 .env
 web-ext-artifacts/
+
+.venv*/
