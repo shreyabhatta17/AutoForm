@@ -30,13 +30,13 @@ Supabase or any other Postgres works too. Avoid Render's free Postgres for real 
 ## 2. Get a free LLM API key (Groq)
 
 1. Sign up at <https://console.groq.com> and create an API key.
-2. Check the model list (<https://console.groq.com/docs/models>). The default is `llama-3.1-8b-instant`. If Groq has retired it, set `LLM_MODEL` to a current model.
+2. Check the model list (<https://console.groq.com/docs/models>). This deployment uses `openai/gpt-oss-20b`.
 
 To use another provider, change two variables:
 
 | Provider | `LLM_BASE_URL` | Example `LLM_MODEL` |
 | --- | --- | --- |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.1-8b-instant` |
+| Groq | `https://api.groq.com/openai/v1` | `openai/gpt-oss-20b` |
 | OpenRouter | `https://openrouter.ai/api/v1` | a `:free` model from their list |
 | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
 | Self-hosted Ollama (GPU server) | set `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL=https://your-server` | `qwen3:4b` |
@@ -48,7 +48,8 @@ To use another provider, change two variables:
 3. When asked, paste:
    - `DATABASE_URL`: the Neon connection string
    - `LLM_API_KEY`: the Groq key
-4. Wait for the deploy, then open `https://<your-service>.onrender.com/health`. You should see `"status":"ok"` and `"llm_provider":"openai"`.
+4. The Blueprint sets `LLM_MODEL=openai/gpt-oss-20b`, `LLM_REASONING_EFFORT=low`, and `LLM_MAX_TOKENS_EXTRA=200`.
+5. Wait for the deploy, then open `https://autoform-shreya.onrender.com/health`. You should see `"status":"ok"` and `"llm_provider":"openai"`.
 
 Notes:
 
@@ -58,7 +59,7 @@ Notes:
 
 ## 4. Point the extension at your backend
 
-If your Render URL is not `https://autoform-backend.onrender.com`, change it in **two places**:
+The Render service is named `autoform-shreya` and uses `https://autoform-shreya.onrender.com`. If your Render URL differs, change it in **two places**:
 
 1. `extension/background.js`: `const DEFAULT_API = 'https://<your-service>.onrender.com';`
 2. `extension/manifest.json`: the matching entry in `host_permissions`.

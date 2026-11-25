@@ -2,9 +2,10 @@
 # You will be asked for the two `sync: false` secrets (DATABASE_URL, LLM_API_KEY).
 services:
   - type: web
-    name: autoform-backend
+    name: autoform-shreya
     runtime: python
     plan: free
+    region: singapore
     rootDir: backend
     buildCommand: pip install -r requirements.txt && python training/train.py
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
@@ -23,7 +24,11 @@ services:
       - key: LLM_BASE_URL
         value: https://api.groq.com/openai/v1
       - key: LLM_MODEL
-        value: llama-3.1-8b-instant
+        value: openai/gpt-oss-20b
+      - key: LLM_REASONING_EFFORT
+        value: low
+      - key: LLM_MAX_TOKENS_EXTRA
+        value: "200"
       - key: LLM_API_KEY
         sync: false
       - key: GENERATE_LIMIT_PER_HOUR

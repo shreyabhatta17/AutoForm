@@ -2,7 +2,7 @@
 // (and add the same origin to host_permissions in manifest.json).
 // For local development you can override it without editing code, from the
 // extension's devtools console:  chrome.storage.local.set({ apiBase: 'http://127.0.0.1:8000' })
-const DEFAULT_API = 'https://autoform-backend.onrender.com';
+const DEFAULT_API = 'https://autoform-shreya.onrender.com';
 
 async function apiBase() {
   const { apiBase } = await chrome.storage.local.get('apiBase');

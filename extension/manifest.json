@@ -5,7 +5,7 @@
   "description": "Fills web forms from your saved profile and drafts written answers. You review every value; forms are never submitted for you.",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": [
-    "https://autoform-backend.onrender.com/*",
+    "https://autoform-shreya.onrender.com/*",
     "http://127.0.0.1:8000/*"
   ],
   "action": {
