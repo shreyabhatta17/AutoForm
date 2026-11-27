@@ -11,3 +11,42 @@ backend/.env
 web-ext-artifacts/
 
 .venv*/
+
+# Local environment and credential files
+.env.*
+!.env.example
+!backend/.env.example
+.credentials/
+credentials/
+secrets/
+**/credentials.json
+**/secrets.json
+**/*service-account*.json
+**/*api-key*.json
+**/*api_key*.json
+**/*token*.json
+**/*credential*.json
+
+# Private keys and certificate bundles
+*.pem
+*.key
+*.p12
+*.pfx
+*.p7b
+*.p7c
+*.jks
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Virtual environments and caches
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Packaged extension builds
+*.zip
