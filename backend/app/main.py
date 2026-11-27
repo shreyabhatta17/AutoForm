@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
+import logging
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.responses import FileResponse
@@ -19,6 +20,10 @@ USER_TABLES = (Education, Experience, Skill, Project, PreviousAnswer, CVDocument
 
 @asynccontextmanager
 async def lifespan(_app):
+    key = settings.llm_api_key
+    logging.getLogger('autoform').info(
+        'LLM config: key_length=%d key_starts_gsk=%s key_has_whitespace_or_nonprintable=%s base_url=%s',
+        len(key), key.startswith('gsk_'), any(c.isspace() or not c.isprintable() for c in key), settings.llm_base_url)
     Base.metadata.create_all(engine)
     add_missing_columns()
     yield

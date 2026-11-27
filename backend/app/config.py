@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # (chrome-extension://, moz-extension://) are always allowed.
     cors_origins: str = ''
 
+    @field_validator('llm_api_key', 'llm_base_url', mode='before')
+    @classmethod
+    def _strip_llm_settings(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
+
     @field_validator('database_url')
     @classmethod
     def _normalise_db_url(cls, value: str) -> str:

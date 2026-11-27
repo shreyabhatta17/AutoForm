@@ -1,6 +1,7 @@
 import os
 import asyncio
 from io import BytesIO
+import pytest
 from unittest.mock import patch
 from docx import Document
 
@@ -517,3 +518,36 @@ def test_postgres_urls_are_normalised():
     assert Settings(database_url='postgresql://u:p@h/db?sslmode=require').database_url == 'postgresql+psycopg://u:p@h/db?sslmode=require'
     assert Settings(llm_provider='auto', llm_api_key='x').provider == 'openai'
     assert Settings(llm_provider='auto', llm_api_key='').provider == 'ollama'
+
+
+def test_llm_settings_strip_whitespace():
+    from app.config import Settings
+    settings_with_space = Settings(llm_api_key=' \n fake-key \t', llm_base_url='\n https://api.example.test/v1 \r\n')
+    assert settings_with_space.llm_api_key == 'fake-key'
+    assert settings_with_space.llm_base_url == 'https://api.example.test/v1'
+
+
+def test_hosted_failure_log_does_not_include_api_key(caplog):
+    import httpx
+
+    fake_key = 'gsk_test_fake'
+
+    class Client:
+        def __init__(self, timeout=None): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def post(self, *args, **kwargs):
+            request = httpx.Request('POST', 'https://api.example.test/v1/chat/completions')
+            raise httpx.ConnectError(f'failed with Authorization: Bearer {fake_key}', request=request)
+
+    with patch.object(settings, 'llm_provider', 'openai'), patch.object(settings, 'llm_api_key', fake_key), \
+         patch.object(settings, 'llm_base_url', 'https://api.example.test/v1'), \
+         patch.object(settings, 'llm_model', 'test-model'), patch('app.services.httpx.AsyncClient', Client):
+        with pytest.raises(RuntimeError, match='could not be reached'):
+            asyncio.run(generate_local('Tell me about yourself', 'Profile: engineer'))
+
+    captured = caplog.text
+    assert 'ConnectError' in captured
+    assert 'https://api.example.test/v1' in captured
+    assert 'test-model' in captured
+    assert fake_key not in captured

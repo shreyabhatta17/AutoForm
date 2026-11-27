@@ -1,5 +1,6 @@
 import re
 import time
+import logging
 from io import BytesIO
 
 import httpx
@@ -1311,6 +1312,12 @@ async def generate_local(question, context, answer_length='standard', guidance=N
                     answer = retry_answer
             return trim_to_word_limit(apply_first_person(answer), max_words)
     except httpx.HTTPStatusError as error:
+        if hosted:
+            body = error.response.text[:200]
+            logging.getLogger('autoform').warning(
+                'Hosted LLM request failed: exception=%s base_url=%s model=%s status=%d body=%s',
+                type(error).__name__, settings.llm_base_url, settings.llm_model,
+                error.response.status_code, body)
         if error.response.status_code == 429:
             raise RuntimeError('The answer service is busy right now. Please try again in a minute.') from error
         if hosted:
@@ -1318,6 +1325,9 @@ async def generate_local(question, context, answer_length='standard', guidance=N
         raise RuntimeError('Local Ollama is unavailable. Start Ollama and verify the selected model.') from error
     except httpx.HTTPError as error:
         if hosted:
+            logging.getLogger('autoform').warning(
+                'Hosted LLM request failed: exception=%s base_url=%s model=%s',
+                type(error).__name__, settings.llm_base_url, settings.llm_model)
             raise RuntimeError('The answer service could not be reached. Please try again shortly.') from error
         raise RuntimeError('Local Ollama is unavailable. Start Ollama and verify the selected model.') from error
 
